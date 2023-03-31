@@ -1,0 +1,201 @@
+<html>
+<head>
+	<style>
+  		 html, body {
+			margin: 0px;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+			font-family: "verdana", "sans-serif";
+			color:white;
+      	}
+		.SliderText {
+			width:47px;
+		}
+		.topmenu{
+			background-color:red;	
+			display:block;			
+			float:left;
+		}
+    </style>
+
+	<!--shader script GLSL language-->
+	<script id="standard-shader-fs" type="x-shader/x-fragment">
+
+		precision mediump float;
+		uniform sampler2D USampler;
+		
+		varying vec2 TextureCoord;
+		varying vec3 LightWeighting;
+		
+		void main (void){
+			vec4 TextColour = texture2D(USampler, vec2(TextureCoord.s, TextureCoord.t));
+			gl_FragColor = vec4(TextColour.rgb * LightWeighting, TextColour.a);
+			//gl_FragColor =TextColour;
+		}
+	</script>
+	<script id ="standard-shader-vs" type="x-shader/x-vertex">
+
+		attribute vec3 attVertexPosition;
+		attribute vec3 attVertexNormal;
+		attribute vec2 attTextureCoord;
+
+		uniform mat4 UmatModelView;
+		uniform mat4 UmatProjection;
+		uniform mat4 UmatCameraPosition;
+		uniform mat3 UmatNormal;
+		uniform vec3 UAmbientColour;
+		uniform vec3 ULightLocation;
+		uniform vec3 UDirectionalColour;
+		uniform bool UUseLights;
+		uniform vec3 UPointLightLocation;
+		uniform vec3 UPointLightColour;
+		uniform float UPointLightStrength;
+		
+		varying vec2 TextureCoord;
+		varying vec3 LightWeighting;
+		
+		void main(void){
+			vec4 matVertexPosition = (UmatModelView * vec4(attVertexPosition, 1.0));
+			gl_Position = UmatProjection *  UmatCameraPosition* UmatModelView  *vec4 (attVertexPosition, 1);
+			TextureCoord = attTextureCoord;
+			if (!UUseLights){
+				LightWeighting = vec3(1.0,1.0,1.0);
+			}else{
+				vec3 TransformedNormal = UmatNormal * attVertexNormal;
+				vec3 LightDirection = normalize(ULightLocation - matVertexPosition.xyz);
+				float DirLightWeight = max(dot(TransformedNormal, LightDirection),0.0);
+				float Distance = length(UPointLightLocation - matVertexPosition.xyz);
+				LightDirection = normalize(UPointLightLocation - matVertexPosition.xyz);
+				float PointLightWeight = max(dot(TransformedNormal,LightDirection),0.0);
+				PointLightWeight *= UPointLightStrength;
+				vec3 PointClipped;
+				PointClipped.r = min (0.8,(UPointLightColour.r * PointLightWeight)/(Distance * Distance));
+				PointClipped.g = min (0.8,(UPointLightColour.g * PointLightWeight)/(Distance * Distance));
+				PointClipped.b = min (0.8,(UPointLightColour.b * PointLightWeight)/(Distance * Distance));
+				LightWeighting = UAmbientColour + (UDirectionalColour * DirLightWeight) + PointClipped;
+			}
+		}
+	</script>
+<!--end of GLSL -->
+	<script type="text/javascript" src="gl-matrix.js"></script> <!--matrix manipulation matrixes-->
+	<script type="text/javascript" src="InputCube.js"></script>
+	<script type="text/javascript" src="InputTest.js"></script>
+	<script type="text/javascript" src="Camera.js"></script>
+</head>
+
+<body style="background-color :black" onload="StartGraphics();ResizeCanvas()" onresize="ResizeCanvas()">
+<div id="divMenu" style="display:none">
+	<div id="Menu1" class="topmenu">
+	 Menu 01
+	</div>
+	<div id="Menu2" class="topmenu">
+	 Menu 02
+	</div>
+	<div id="Menu3" class="topmenu">
+	 Menu 03
+	</div>
+	<div id="Menu4" class="topmenu">
+	 Menu 03
+	</div>
+	<div id="Menu1.1" class="menu">
+		<div class="MenuItem">Item 1!</div>
+		<div class="MenuItem">Item 2!</div>
+		<div class="MenuItem">Item 3!</div>
+		<div class="MenuItem">Item 4!</div>
+	</div>
+	<div id="Menu2.1" class="menu">
+		<div class="MenuItem">Item 2.1!</div>
+		<div class="MenuItem">Item 2.2!</div>
+		<div class="MenuItem">Item 2.3!</div>
+		<div class="MenuItem">Item 2.4!</div>
+	</div>
+	<div id="Menu3.1" class="menu">
+		<div class="MenuItem">Item 3.1!</div>
+		<div class="MenuItem">Item 3.2!</div>
+		<div class="MenuItem">Item 3.3!</div>
+		<div class="MenuItem">Item 3.4!</div>
+	</div>
+	<div id="Menu4.1" class="menu">
+		<div class="MenuItem">Item 4.1!</div>
+		<div class="MenuItem">Item 4.2!</div>
+		<div class="MenuItem">Item 4.3!</div>
+		<div class="MenuItem">Item 4.4!</div>
+	</div>
+</div>
+<div id="divSliders" style="display:none"> 
+	<div id="divRotation" style="text-align:center" >
+		<Table style="display:inline">
+			<TR id = "CubeRotation">
+				<TD>Rotation</TD>
+				<TD>X: <input type ="range" id="inpCubRotX" min="-1" max="1" step="0.01" value="0" onchange="document.getElementById('numCubRotX').value=this.value"/></TD>
+				<TD><input type="number" id="numCubRotX" class="SliderText" max="1" min = "-1" step = "0.01" value ="0" onchange="document.getElementById('inpCubRotX').value=this.value" /></TD>
+				<TD>Y: <input type ="range" id="inpCubRotY" max="1" min = "-1" step = "0.01" value ="0" onchange="document.getElementById('numCubRotY').value=this.value"/></TD>
+				<TD><input type="number" id="numCubRotY" class="SliderText" max="1" min = "-1" step = "0.01" value ="0" onchange="document.getElementById('inpCubRotY').value=this.value" /></TD>
+				<TD>Z: <input type ="range" id="inpCubRotZ" max="1" min = "-1" step = "0.01" value ="0.5" onchange="document.getElementById('numCubRotZ').value=this.value"/></TD>
+				<TD><input type="number" id="numCubRotZ" class="SliderText" max="1" min = "-1" step = "0.01" value ="0" onchange="document.getElementById('inpCubRotZ').value=this.value" /></TD>
+				<TD><input type="button" value ="Reset" onClick="ResetCubeRot()" /></TD>
+			</TR><!--CubeRotation-->
+			<TR id = "CubeOscillation">
+				<TD>Oscillation</TD>
+				<TD>X: <input type ="range" id="inpCubOscX" max="1" min = "-1" step = "0.01" value ="0.5" onchange="document.getElementById('numCubOscX').value=this.value"/></TD>
+				<TD><input type="number" id="numCubOscX" class="SliderText" max="1" min = "-1" step = "0.01" value ="0.5" onchange="document.getElementById('inpCubOscX').value=this.value" /></TD>
+				<TD>Y: <input type ="range" id="inpCubOscY" max="1" min = "-1" step = "0.01" value ="0.5" onchange="document.getElementById('numCubOscY').value=this.value"/></TD>
+				<TD><input type="number" id="numCubOscY" class="SliderText" max="1" min = "-1" step = "0.01" value ="0.5" onchange="document.getElementById('inpCubOscY').value=this.value" /></TD>
+				<TD>Z: <input type ="range" id="inpCubOscZ" max="1" min = "-1" step = "0.01" value ="0.5" onchange="document.getElementById('numCubOscZ').value=this.value"/></TD>
+				<TD><input type="number" id="numCubOscZ" class="SliderText" max="1" min = "-1" step = "0.01" value ="0.5" onchange="document.getElementById('inpCubOscZ').value=this.value" /></TD>
+				<TD><input type="button" value ="Reset" onClick="ResetCubeOsc()" /></TD>
+			</TR>
+		</TABLE>
+	</div>
+	<BR>
+	<div id ="divCreation" style="text-align:center;width:100%" >
+		<TABLE>
+			<TR id="LightingPosition">
+				<TD>Light Direction</TD>
+				<TD>X:<input type ="range" id="inpDirLightX" max="1" min = "-1" step = "0.01" value ="0.5" onchange="document.getElementById('numDirLightX').value=this.value"/></TD>
+				<TD><input type="number" id="numDirLightX" class="SliderText" max="1" min = "-1" step = "0.01" value ="0.5" onchange="document.getElementById('inpDirLightX').value=this.value" /></TD>
+				<TD>Y:<input type ="range" id="inpDirLightY" max="1" min = "-1" step = "0.01" value ="0.5" onchange="document.getElementById('numDirLightY').value=this.value"/></TD>
+				<TD><input type="number" id="numDirLightY" class="SliderText" max="1" min = "-1" step = "0.01" value ="0.5" onchange="document.getElementById('inpDirLightY').value=this.value" /></TD>
+				<TD>Z:<input type ="range" id="inpDirLightZ" max="1" min = "-1" step = "0.01" value ="0.5" onchange="document.getElementById('numDirLightZ').value=this.value"/></TD>
+				<TD><input type="number" id="numDirLightZ" class="SliderText" max="1" min = "-1" step = "0.01" value ="0.5" onchange="document.getElementById('inpDirLightZ').value=this.value" /></TD>
+				<TD></TD>
+				<TD>DirLight Colour</TD>
+				<TD>Red:<input type ="range" id="inpDirLightRed" max="1" min = "0" step = "0.01" value ="0" onchange="document.getElementById('numDirLightRed').value=this.value"/></TD>
+				<TD><input type="number" id="numDirLightRed" class="SliderText" max="1" min = "0" step = "0.01" value ="0.5" onchange="document.getElementById('inpDirLightRed').value=this.value" /></TD>
+				<TD>Green:<input type ="range" id="inpDirLightGreen" max="1" min = "0" step = "0.01" value ="1" onchange="document.getElementById('numDirLightGreen').value=this.value"/></TD>
+				<TD><input type="number" id="numDirLightGreen" class="SliderText" max="1" min = "0" step = "0.01" value ="0.5" onchange="document.getElementById('inpDirLightGreen').value=this.value" /></TD>
+				<TD>Blue:<input type ="range" id="inpDirLightBlue" max="1" min = "0" step = "0.01" value ="0" onchange="document.getElementById('numDirLightBlue').value=this.value"/></TD>
+				<TD><input type="number" id="numDirLightBlue" class="SliderText" max="1" min = "0" step = "0.01" value ="0.5" onchange="document.getElementById('inpDirLightBlue').value=this.value" /></TD>
+				<TD></TD>
+			</TR>
+			<TR id = "LightingPosition2">
+				<TD>Ambient Light</TD>
+				<TD>Red:<input type ="range" id="inpAmbLightRed" max="1" min = "0" step = "0.01" value ="0.05" onchange="document.getElementById('numAmbLightRed').value=this.value"/></TD>
+				<TD><input type="number" id="numAmbLightRed" class="SliderText" max="1" min = "0" step = "0.01" value ="0.5" onchange="document.getElementById('inpAmbLightRed').value=this.value" /></TD>
+				<TD>Green:<input type ="range" id="inpAmbLightGreen" max="1" min = "0" step = "0.01" value ="0.03" onchange="document.getElementById('numAmbLightGreen').value=this.value"/></TD>
+				<TD><input type="number" id="numAmbLightGreen" class="SliderText" max="1" min = "0" step = "0.01" value ="0.5" onchange="document.getElementById('inpAmbLightGreen').value=this.value" /></TD>
+				<TD>Blue:<input type ="range" id="inpAmbLightBlue" max="1" min = "0" step = "0.01" value ="0.03" onchange="document.getElementById('numAmbLightBlue').value=this.value"/></TD>
+				<TD><input type="number" id="numAmbLightBlue" class="SliderText" max="1" min = "0" step = "0.01" value ="0.5" onchange="document.getElementById('inpAmbLightBlue').value=this.value" /></TD>
+				<TD></TD>
+				<TD></TD>
+				<TD></TD>
+				<TD style="text-align:right">Single</TD>
+				<TD><input type="button" value ="Add One"  onclick="AddCube()"/>&nbsp; &nbsp; &nbsp;<input type="button" value ="Delete Last"  onClick="DelCube()"/></TD>
+				<TD style="text-align:right">Total</TD>
+				<TD><input type="number" id="numCubes" class="SliderText" style="text-align:left" value="250" min="0" step="1" /></TD>
+				<TD style="text-align:right">Reset</TD>
+				<TD><input type="button" value ="Reset" onclick="ResetCubeCreation()" /></TD>
+			</TR>
+		</Table>
+	</div><!--rotation-->
+</div><!--sliders-->
+<canvas id = "TestCanvas" width="1920" height="800"></canvas>
+<div style="display:none">
+	<img src= "ConcreteSide2.jpg" id="imgSide" />
+	<img src ="ConcreteTop.jpg" id="imgTop" />
+	<img src= "ConcreteBottom.jpg" id="imgBottom" />
+</div>
+
+</body>
+</html>
